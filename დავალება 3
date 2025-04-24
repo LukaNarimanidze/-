@@ -1,0 +1,161 @@
+import React, { createContext, useState, useContext } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { View, Text, FlatList, Image, Button, TouchableOpacity } from 'react-native';
+
+const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+const OrderContext = createContext();
+
+const CATEGORIES = [
+  { id: '1', title: 'პიცა', color: '#f54242' },
+  { id: '2', title: 'სუში', color: '#42f554' },
+  { id: '3', title: 'ბურგერები', color: '#f5a142' },
+  { id: '4', title: 'დესერტები', color: '#c142f5' },
+  { id: '5', title: 'სალათები', color: '#42d4f5' },
+];
+
+const MEALS = [
+  {
+    id: 'm1', categoryIds: ['1'], title: 'მარგარიტა პიცა',
+    imageUrl: 'https://cdn.pixabay.com/photo/2017/12/09/08/18/pizza-3007395_1280.jpg',
+    ingredients: ['პომიდორი', 'მოცარელა', 'ბაზილიკი'], price: 9.99
+  },
+  {
+    id: 'm2', categoryIds: ['1'], title: 'პეპერონი პიცა',
+    imageUrl: 'https://cdn.pixabay.com/photo/2024/04/23/09/33/ai-generated-8714541_1280.jpg',
+    ingredients: ['პეპერონი', 'ყველი', 'პომიდვრის სოუსი'], price: 11.99
+  },
+  {
+    id: 'm3', categoryIds: ['2'], title: 'ორაგულის სუშის ნაკრები',
+    imageUrl: 'https://cdn.pixabay.com/photo/2023/04/27/23/55/ai-generated-7955586_1280.jpg',
+    ingredients: ['ბრინჯი', 'ორაგული', 'ნორი', 'ვასაბი'], price: 14.5
+  },
+  {
+    id: 'm4', categoryIds: ['3'], title: 'კლასიკური ჩიზბურგერი',
+    imageUrl: 'https://cdn.pixabay.com/photo/2016/03/05/19/02/hamburger-1238246_1280.jpg',
+    ingredients: ['საქონლის ხორცი', 'ჩედარი', 'ისპანახი', 'პომიდორი'], price: 8.99
+  },
+  {
+    id: 'm5', categoryIds: ['4'], title: 'შოკოლადის ლავა-ტორტი',
+    imageUrl: 'https://cdn.pixabay.com/photo/2024/04/21/18/43/ai-generated-8711271_1280.jpg',
+    ingredients: ['მუქი შოკოლადი', 'კვერცხი', 'კარაქი', 'ფქვილი'], price: 6.5
+  },
+  {
+    id: 'm6', categoryIds: ['5'], title: 'ბერძნული სალათა',
+    imageUrl: 'https://cdn.pixabay.com/photo/2015/04/08/13/13/food-712665_1280.jpg',
+    ingredients: ['კიტრი', 'პომიდორი', 'ფეტა', 'ზეთისხილი'], price: 7.25
+  },
+];
+
+function HomeScreen({ navigation }) {
+  return (
+    <FlatList
+      data={CATEGORIES}
+      keyExtractor={item => item.id}
+      renderItem={({ item }) => (
+        <TouchableOpacity onPress={() => navigation.navigate('მენიუ', { categoryId: item.id })}>
+          <View style={{ padding: 20, backgroundColor: item.color, margin: 10 }}>
+            <Text style={{ fontSize: 20 }}>{item.title}</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+    />
+  );
+}
+
+function MealsScreen({ route, navigation }) {
+  const meals = MEALS.filter(m => m.categoryIds.includes(route.params.categoryId));
+  return (
+    <FlatList
+      data={meals}
+      keyExtractor={item => item.id}
+      renderItem={({ item }) => (
+        <TouchableOpacity onPress={() => navigation.navigate('დეტალები', { meal: item })}>
+          <View style={{ padding: 10 }}>
+            <Text style={{ fontSize: 18 }}>{item.title}</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+    />
+  );
+}
+
+function DetailsScreen({ route, navigation }) {
+  const { meal } = route.params;
+  const { setLastOrder, addToOrder } = useContext(OrderContext);
+  return (
+    <View style={{ padding: 20 }}>
+      <Image source={{ uri: meal.imageUrl }} style={{ height: 200, width: '100%' }} />
+      <Text style={{ fontSize: 22 }}>{meal.title}</Text>
+      <Text>შემადგენლობა: {meal.ingredients.join(', ')}</Text>
+      <Text>ფასი: {meal.price} ₾</Text>
+      <Button title="დავუმატო შეკვეთას" onPress={() => {
+        setLastOrder(meal);
+        addToOrder(meal);
+        navigation.navigate('დადასტურება');
+      }} />
+    </View>
+  );
+}
+
+function ConfirmationScreen({ navigation }) {
+  const { lastOrder } = useContext(OrderContext);
+  return (
+    <View style={{ padding: 20 }}>
+      <Text style={{ fontSize: 20 }}>თქვენ შეუკვეთეთ: {lastOrder?.title}</Text>
+      <Button title="ნახე ყველა შეკვეთა" onPress={() => navigation.navigate('შეკვეთები')} />
+    </View>
+  );
+}
+
+function OrdersScreen() {
+  const { orders } = useContext(OrderContext);
+  return (
+    <FlatList
+      data={orders}
+      keyExtractor={(item, index) => index.toString()}
+      renderItem={({ item }) => (
+        <View style={{ padding: 10 }}>
+          <Image source={{ uri: item.imageUrl }} style={{ height: 100, width: 100 }} />
+          <Text>{item.title}</Text>
+          <Text>{item.price} ₾</Text>
+        </View>
+      )}
+    />
+  );
+}
+
+function HomeStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen name="მთავარი" component={HomeScreen} />
+      <Stack.Screen name="მენიუ" component={MealsScreen} />
+      <Stack.Screen name="დეტალები" component={DetailsScreen} />
+      <Stack.Screen name="დადასტურება" component={ConfirmationScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function App() {
+  const [orders, setOrders] = useState([]);
+  const [lastOrder, setLastOrder] = useState(null);
+  const addToOrder = (meal) => setOrders(prev => [...prev, meal]);
+
+  return (
+    <OrderContext.Provider value={{ orders, lastOrder, setLastOrder, addToOrder }}>
+      <NavigationContainer>
+        <Tab.Navigator>
+          <Tab.Screen name="HomeTab" component={HomeStack} options={{ title: 'მთავარი' }} />
+          <Tab.Screen name="Orders" component={OrdersScreen} options={{ title: 'შეკვეთები' }} />
+        </Tab.Navigator>
+        <TouchableOpacity style={{ position: 'absolute', bottom: 10, right: 10, padding: 10, backgroundColor: '#eee', borderRadius: 10 }} onPress={() => alert('By Luka Narimanidze')}>
+          <Text style={{ fontSize: 12 }}>ⓘ</Text>
+        </TouchableOpacity>
+      </NavigationContainer>
+    </OrderContext.Provider>
+  );
+}
+
+export default App;
